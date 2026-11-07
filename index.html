@@ -176,13 +176,14 @@ async function jobModal(jobId,title){
 }
 
 /* ---------- status polling ---------- */
-let S=null;const H={cpu:[],ram:[],tps:[]};
+let updVer=null;let S=null;const H={cpu:[],ram:[],tps:[]};
 const push=(a,v)=>{a.push(v);if(a.length>90)a.shift();};
 async function poll(){
   try{
     S=await api("/api/status");
     push(H.cpu,S.cpu??0);push(H.ram,S.ram_used?S.ram_used/(S.ram_max||S.sys_ram_total)*100:0);push(H.tps,S.tps??0);
     renderTop();if(page==="overview")renderOverviewLive();
+    if(page==="updates"&&updVer!==null&&S.version!==updVer){updVer=S.version;R.updates();}
   }catch(e){}
   setTimeout(poll,2000);
 }
@@ -460,6 +461,7 @@ R.schedules=async function(){
 
 /* Updates */
 R.updates=async function(){
+  updVer=S?S.version:null;
   const load=async()=>{
     const s=await api("/api/update/status");
     $("#view").innerHTML=`<div class="cards"><div class="card"><div class="k">Installed modpack</div><div class="v">ATM10 ${esc(s.version||"?")}</div></div>
