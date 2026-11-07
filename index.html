@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ATM10 Dashboard</title>
+<style>
+:root{
+  --bg:#0e1311; --panel:#161d1a; --panel2:#1c2521; --line:#27322d; --fg:#e4ece7; --mut:#8fa297;
+  --acc:#5fc28a; --accfg:#0b1410; --warn:#e9a23b; --bad:#e4604f; --info:#6fb3e0;
+  --mono:Consolas,"Cascadia Mono",monospace; --sans:"Segoe UI",system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font:14px/1.5 var(--sans);color-scheme:dark}
+button,input,select,textarea{font:inherit;color:inherit}
+.app{display:grid;grid-template-columns:210px 1fr;height:100%}
+aside{background:var(--panel);border-right:1px solid var(--line);padding:16px 10px;display:flex;flex-direction:column;gap:4px;overflow:auto}
+.brand{display:flex;align-items:center;gap:10px;padding:4px 10px 16px;font-weight:700;font-size:16px;letter-spacing:.2px}
+.brand i{width:26px;height:26px;border-radius:6px;background:var(--acc);display:grid;place-items:center;color:var(--accfg);font-style:normal;font-weight:800;font-size:13px}
+nav button{display:flex;align-items:center;gap:10px;width:100%;text-align:left;background:none;border:0;border-radius:8px;padding:9px 10px;color:var(--mut);cursor:pointer}
+nav button:hover{background:var(--panel2);color:var(--fg)}
+nav button.on{background:var(--panel2);color:var(--fg);box-shadow:inset 3px 0 0 var(--acc)}
+nav svg{width:18px;height:18px;flex:none;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+main{display:flex;flex-direction:column;min-width:0;height:100%}
+.top{display:flex;align-items:center;gap:14px;padding:12px 24px;border-bottom:1px solid var(--line);background:var(--panel);flex-wrap:wrap}
+.top h1{font-size:18px;margin:0;flex:1;min-width:140px}
+.pill{display:inline-flex;align-items:center;gap:8px;padding:4px 12px;border-radius:999px;background:var(--panel2);border:1px solid var(--line);font-weight:600}
+.dot{width:9px;height:9px;border-radius:50%;background:var(--bad)}
+.running .dot{background:var(--acc)} .starting .dot{background:var(--warn)} .external .dot{background:var(--info)}
+.ctl{display:flex;gap:8px;flex-wrap:wrap}
+#view{padding:22px 24px 40px;overflow:auto;flex:1;min-height:0}
+.btn{border:1px solid var(--line);background:var(--panel2);border-radius:8px;padding:7px 14px;cursor:pointer}
+.btn:hover:not(:disabled){border-color:var(--acc)}
+.btn:disabled{opacity:.4;cursor:not-allowed}
+.btn.pri{background:var(--acc);color:var(--accfg);border-color:var(--acc);font-weight:600}
+.btn.bad{border-color:var(--bad);color:var(--bad)}
+.btn.sm{padding:3px 10px;font-size:13px}
+.btn:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+h2{font-size:15px;margin:26px 0 10px;color:var(--mut);text-transform:uppercase;letter-spacing:.8px;font-weight:600}
+h2:first-child{margin-top:0}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(210px,1fr));gap:12px}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px;min-width:0}
+.card .k{color:var(--mut);font-size:12px;text-transform:uppercase;letter-spacing:.6px}
+.card .v{font-size:24px;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums}
+.card .s{color:var(--mut);font-size:12px;margin-top:2px}
+.card svg.sp{width:100%;height:34px;margin-top:6px;display:block}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:14px 16px}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;color:var(--mut);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.5px;padding:8px 10px;border-bottom:1px solid var(--line)}
+td{padding:8px 10px;border-bottom:1px solid var(--line);vertical-align:middle;min-width:0}
+tr:last-child td{border-bottom:0}
+tr.inst td{color:var(--mut)}
+.tw{overflow-x:auto;background:var(--panel);border:1px solid var(--line);border-radius:12px}
+.badge{display:inline-block;padding:1px 8px;border-radius:999px;font-size:12px;border:1px solid var(--line);color:var(--mut)}
+.badge.g{border-color:var(--acc);color:var(--acc)}
+.badge.w{border-color:var(--warn);color:var(--warn)}
+input[type=text],input[type=password],input[type=number],input[type=time],select,textarea{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:0}
+input[type=text],input[type=password]{width:100%}
+textarea{width:100%;font:13px/1.45 var(--mono);resize:vertical}
+.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}
+.row>.grow{flex:1;min-width:180px}
+.mut{color:var(--mut)}
+.console{background:#080b0a;border:1px solid var(--line);border-radius:12px;padding:10px 12px;font:12.5px/1.45 var(--mono);height:calc(100vh - 250px);min-height:260px;overflow:auto;white-space:pre-wrap;word-break:break-all}
+.console.mini{height:210px;min-height:0}
+.console .w{color:var(--warn)} .console .e{color:var(--bad)} .console .c{color:var(--info)} .console .s{color:var(--acc)}
+.tabs{display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap}
+.tabs button{background:none;border:1px solid var(--line);border-radius:999px;padding:5px 14px;color:var(--mut);cursor:pointer}
+.tabs button.on{background:var(--acc);color:var(--accfg);border-color:var(--acc);font-weight:600}
+.grid2{display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:14px}
+.cfg{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:10px}
+.cfg .item{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px 12px;display:flex;flex-direction:column;gap:6px}
+.cfg label{font-weight:600;font-size:13px;word-break:break-all}
+.cfg .info{color:var(--mut);font-size:12px}
+.sw{position:relative;width:40px;height:22px;flex:none}
+.sw input{opacity:0;width:100%;height:100%;position:absolute;inset:0;margin:0;cursor:pointer;z-index:1}
+.sw span{position:absolute;inset:0;background:#3d4d45;box-shadow:inset 0 0 0 1px #61766b;border-radius:999px;transition:.15s}
+.sw span::after{content:"";position:absolute;width:16px;height:16px;left:3px;top:3px;border-radius:50%;background:#aebcb4;transition:.15s}
+.sw input:checked+span{background:var(--acc);box-shadow:none} .sw input:checked+span::after{transform:translateX(18px);background:#fff}
+.sw input:focus-visible+span{outline:2px solid var(--acc);outline-offset:2px}
+.crumb a{color:var(--acc);cursor:pointer}
+a.lnk{color:var(--acc);cursor:pointer;text-decoration:none} a.lnk:hover{text-decoration:underline}
+#modal{position:fixed;inset:0;background:rgba(0,0,0,.6);display:none;align-items:center;justify-content:center;z-index:50;padding:16px}
+#modal.show{display:flex}
+.dlg{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:20px;width:min(720px,100%);max-height:90vh;overflow:auto;display:flex;flex-direction:column;gap:12px}
+.dlg h3{margin:0;font-size:17px}
+.dlg .acts{display:flex;gap:8px;justify-content:flex-end;flex-wrap:wrap}
+.joblog{background:#080b0a;border:1px solid var(--line);border-radius:8px;padding:10px;font:12.5px/1.45 var(--mono);max-height:300px;overflow:auto;white-space:pre-wrap}
+#toasts{position:fixed;right:18px;bottom:18px;display:flex;flex-direction:column;gap:8px;z-index:60}
+.toast{background:var(--panel2);border:1px solid var(--line);border-left:4px solid var(--acc);border-radius:8px;padding:10px 14px;max-width:380px}
+.toast.err{border-left-color:var(--bad)}
+.banner{background:var(--panel2);border:1px solid var(--warn);border-radius:12px;padding:12px 16px;margin-bottom:14px;display:flex;gap:12px;align-items:center;flex-wrap:wrap}
+.banner .grow{flex:1;min-width:200px}
+@media (max-width:760px){.app{grid-template-columns:1fr;grid-template-rows:auto 1fr}aside{flex-direction:row;overflow-x:auto;border-right:0;border-bottom:1px solid var(--line);padding:8px}.brand{display:none}nav{display:flex;gap:4px}nav button{white-space:nowrap}}
+@media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside>
+    <div class="brand"><i>A</i><span>ATM10 Server</span></div>
+    <nav id="nav"></nav>
+  </aside>
+  <main>
+    <div class="top">
+      <h1 id="title">Overview</h1>
+      <span id="pill" class="pill stopped"><span class="dot"></span><span id="pilltext">Stopped</span></span>
+      <div class="ctl">
+        <button class="btn pri" id="bStart">Start</button>
+        <button class="btn" id="bStop">Stop</button>
+        <button class="btn" id="bRestart">Restart</button>
+        <button class="btn bad" id="bKill">Force kill</button>
+      </div>
+    </div>
+    <div id="view"></div>
+  </main>
+</div>
+<div id="modal"></div>
+<div id="toasts"></div>
+<script>
+const TOKEN="%%TOKEN%%";
+const $=(s,r=document)=>r.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const ICONS={
+ overview:'<path d="M3 12l9-8 9 8M5 10v10h5v-6h4v6h5V10"/>',
+ players:'<circle cx="9" cy="8" r="3.5"/><path d="M2.5 20c0-3.5 3-6 6.5-6s6.5 2.5 6.5 6M17 11a3 3 0 100-6M21.5 20c0-2.6-1.7-4.6-4-5.4"/>',
+ files:'<path d="M3 6.5A1.5 1.5 0 014.5 5H9l2 2.5h8.5A1.5 1.5 0 0121 9v9.5a1.5 1.5 0 01-1.5 1.5h-15A1.5 1.5 0 013 18.5z"/>',
+ console:'<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M7 9l3 3-3 3M12 15h5"/>',
+ mods:'<path d="M12 3l8 4.5v9L12 21l-8-4.5v-9zM12 12l8-4.5M12 12v9M12 12L4 7.5"/>',
+ backups:'<path d="M4 4h12l4 4v12H4z"/><path d="M8 4v5h7V4M8 20v-6h8v6"/>',
+ schedules:'<rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/>',
+ updates:'<path d="M12 4v11M7 11l5 5 5-5M5 20h14"/>',
+ config:'<circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.7 1.7 0 00.3 1.9l.1.1a2 2 0 11-2.8 2.8l-.1-.1a1.7 1.7 0 00-1.9-.3 1.7 1.7 0 00-1 1.5V21a2 2 0 11-4 0v-.1a1.7 1.7 0 00-1.1-1.5 1.7 1.7 0 00-1.9.3l-.1.1a2 2 0 11-2.8-2.8l.1-.1a1.7 1.7 0 00.3-1.9 1.7 1.7 0 00-1.5-1H3a2 2 0 110-4h.1a1.7 1.7 0 001.5-1.1 1.7 1.7 0 00-.3-1.9l-.1-.1a2 2 0 112.8-2.8l.1.1a1.7 1.7 0 001.9.3H9a1.7 1.7 0 001-1.5V3a2 2 0 114 0v.1a1.7 1.7 0 001 1.5 1.7 1.7 0 001.9-.3l.1-.1a2 2 0 112.8 2.8l-.1.1a1.7 1.7 0 00-.3 1.9V9a1.7 1.7 0 001.5 1H21a2 2 0 110 4h-.1a1.7 1.7 0 00-1.5 1z"/>'
+};
+const PAGES=[["overview","Overview"],["players","Players"],["files","Files"],["console","Console"],["mods","Mods"],["backups","Backups"],["schedules","Schedules"],["updates","Updates"],["config","Configuration"]];
+$("#nav").innerHTML=PAGES.map(([id,l])=>`<button data-p="${id}"><svg viewBox="0 0 24 24">${ICONS[id]}</svg>${l}</button>`).join("");
+
+async function api(path,opts={}){
+  const o={method:opts.body!==undefined?"POST":"GET",headers:{"X-Token":TOKEN}};
+  if(opts.body!==undefined){
+    if(opts.raw){o.body=opts.body;o.headers["Content-Type"]="application/octet-stream";}
+    else{o.body=JSON.stringify(opts.body);o.headers["Content-Type"]="application/json";}
+  }
+  const r=await fetch(path,o);
+  let j={};try{j=await r.json();}catch(e){}
+  if(!r.ok)throw new Error(j.error||("Request failed ("+r.status+")"));
+  return j;
+}
+function toast(msg,err){const t=document.createElement("div");t.className="toast"+(err?" err":"");t.textContent=msg;$("#toasts").appendChild(t);setTimeout(()=>t.remove(),err?7000:4000);}
+async function act(fn,okmsg){try{const r=await fn();if(okmsg)toast(okmsg);return r;}catch(e){toast(e.message,true);}}
+const bytes=n=>{if(n==null)return"-";const u=["B","KB","MB","GB","TB"];let i=0;while(n>=1024&&i<4){n/=1024;i++;}return(n>=100||i===0?n.toFixed(0):n.toFixed(1))+" "+u[i];};
+const dur=s=>{s=Math.floor(s);const h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?`${h}h ${m}m`:`${m}m ${s%60}s`;};
+const when=t=>new Date(t*1000).toLocaleString();
+
+let modalResolve=null;
+function modal(html){const m=$("#modal");m.innerHTML=`<div class="dlg" role="dialog" aria-modal="true">${html}</div>`;m.classList.add("show");}
+function closeModal(){$("#modal").classList.remove("show");$("#modal").innerHTML="";}
+function confirmBox(title,msg,buttons){
+  return new Promise(res=>{
+    modal(`<h3>${esc(title)}</h3><div>${msg}</div><div class="acts">${buttons.map((b,i)=>`<button class="btn ${b.cls||""}" data-i="${i}">${esc(b.label)}</button>`).join("")}</div>`);
+    $("#modal").querySelectorAll("[data-i]").forEach(b=>b.onclick=()=>{closeModal();res(buttons[+b.dataset.i].value);});
+  });
+}
+async function jobModal(jobId,title){
+  modal(`<h3>${esc(title)}</h3><div class="joblog" id="jl">Starting...</div><div class="acts"><button class="btn pri" id="jc" disabled>Working...</button></div>`);
+  return new Promise(res=>{
+    const tick=async()=>{
+      try{
+        const j=await api("/api/job?id="+jobId);
+        const jl=$("#jl");if(jl){jl.textContent=j.log.join("\n")||"Working...";jl.scrollTop=jl.scrollHeight;}
+        if(j.done){const b=$("#jc");b.disabled=false;b.textContent=j.ok?"Done":"Close";b.onclick=()=>{closeModal();res(j.ok);};return;}
+      }catch(e){}
+      setTimeout(tick,1000);
+    };tick();
+  });
+}
+
+/* ---------- status polling ---------- */
+let S=null;const H={cpu:[],ram:[],tps:[]};
+const push=(a,v)=>{a.push(v);if(a.length>90)a.shift();};
+async function poll(){
+  try{
+    S=await api("/api/status");
+    push(H.cpu,S.cpu??0);push(H.ram,S.ram_used?S.ram_used/(S.ram_max||S.sys_ram_total)*100:0);push(H.tps,S.tps??0);
+    renderTop();if(page==="overview")renderOverviewLive();
+  }catch(e){}
+  setTimeout(poll,2000);
+}
+function renderTop(){
+  const names={stopped:"Stopped",starting:"Starting...",running:"Running",external:"Running outside the dashboard"};
+  $("#pill").className="pill "+S.state;$("#pilltext").textContent=names[S.state];
+  const own=S.state==="running"||S.state==="starting";
+  $("#bStart").disabled=S.state!=="stopped";$("#bStop").disabled=!own;$("#bRestart").disabled=S.state!=="running";$("#bKill").disabled=!own;
+}
+function spark(arr,max,color){
+  const w=200,h=34;if(arr.length<2)return`<svg class="sp" viewBox="0 0 ${w} ${h}"></svg>`;
+  const m=max||Math.max(1,...arr);
+  const pts=arr.map((v,i)=>`${(i/(arr.length-1)*w).toFixed(1)},${(h-2-Math.min(v,m)/m*(h-6)).toFixed(1)}`).join(" ");
+  return`<svg class="sp" viewBox="0 0 ${w} ${h}" preserveAspectRatio="none"><polyline points="${pts}" fill="none" stroke="${color}" stroke-width="1.8" stroke-linejoin="round"/></svg>`;
+}
+
+/* ---------- controls ---------- */
+$("#bStart").onclick=startFlow;
+$("#bStop").onclick=()=>act(()=>api("/api/stop",{body:{}}),"Stop sent. The world is saving.");
+$("#bKill").onclick=async()=>{if(await confirmBox("Force kill","Force kill can corrupt the world. Use it only if Stop does not work.",[{label:"Cancel",value:false},{label:"Force kill",value:true,cls:"bad"}]))act(()=>api("/api/kill",{body:{}}),"Killed.");};
+$("#bRestart").onclick=async()=>{if(await confirmBox("Restart","Players get a 30 second warning, then the server stops and starts again.",[{label:"Cancel",value:false},{label:"Restart",value:true,cls:"pri"}])){const r=await act(()=>api("/api/restart",{body:{warn:30}}));if(r)toast("Restarting in 30 seconds.");}};
+async function startFlow(){
+  try{
+    const us=await api("/api/update/status");
+    if(us.has_key){
+      toast("Checking for an ATM10 update...");
+      let c=null;try{c=await api("/api/update/check");}catch(e){toast("Update check failed: "+e.message,true);}
+      if(c&&c.ok&&c.newer){
+        if(!c.serverPack){toast(`ATM10 ${c.latest} is out, but its server pack is not uploaded yet. Starting ${c.current}.`,true);}
+        else{
+          const ch=await confirmBox("ATM10 update available",`ATM10 <b>${esc(c.latest)}</b> is available. The server has <b>${esc(c.current)}</b>.<br>Updating backs up your world, config and old mods first.`,[{label:"Cancel",value:"cancel"},{label:"Start current version",value:"skip"},{label:"Update, then start",value:"update",cls:"pri"}]);
+          if(ch==="cancel")return;
+          if(ch==="update"){
+            const r=await api("/api/update/apply",{body:{}});
+            const ok=await jobModal(r.job,"Updating ATM10");
+            if(!ok){toast("The update did not finish, so the server was not started.",true);return;}
+          }
+        }
+      }
+    }
+    await api("/api/start",{body:{}});toast("Starting the server...");
+  }catch(e){toast(e.message,true);}
+}
+
+/* ---------- pages ---------- */
+let page="overview",timers=[];
+function clearTimers(){timers.forEach(clearTimeout);timers=[];}
+function go(p){page=p;clearTimers();const v=$("#view");v.onclick=null;v.onchange=null;v.oninput=null;document.querySelectorAll("nav button").forEach(b=>b.classList.toggle("on",b.dataset.p===p));
+  $("#title").textContent=PAGES.find(x=>x[0]===p)[1];location.hash=p;$("#view").innerHTML="";R[p]();}
+$("#nav").onclick=e=>{const b=e.target.closest("button");if(b)go(b.dataset.p);};
+const R={};
+
+/* Overview */
+R.overview=function(){
+  $("#view").innerHTML=`<div id="upbanner"></div>
+  <div class="cards" id="ov"></div>
+  <h2>Server</h2><div class="cards" id="ov2"></div>
+  <h2>Recent console</h2><div class="console mini" id="mini"></div>`;
+  renderOverviewLive();pollMini(0);
+};
+function renderOverviewLive(){
+  if(!S||!$("#ov"))return;
+  const ramPct=S.ram_used&&S.ram_max?(S.ram_used/S.ram_max*100):0;
+  $("#ov").innerHTML=`
+   <div class="card"><div class="k">Players</div><div class="v">${S.players.length} / ${esc(S.max_players)}</div><div class="s">${S.players.map(esc).join(", ")||"nobody online"}</div></div>
+   <div class="card"><div class="k">TPS</div><div class="v">${S.tps!=null?S.tps.toFixed(1):"-"}</div>${spark(H.tps,20,"var(--acc)")}</div>
+   <div class="card"><div class="k">CPU (server)</div><div class="v">${S.cpu!=null?S.cpu.toFixed(0)+"%":"-"}</div>${spark(H.cpu,100,"var(--info)")}<div class="s">${S.cores} cores in this PC</div></div>
+   <div class="card"><div class="k">Server memory</div><div class="v">${bytes(S.ram_used)}</div>${spark(H.ram,100,"var(--warn)")}<div class="s">limit ${esc(S.xmx||"?")} of ${bytes(S.sys_ram_total)} in the PC</div></div>
+   <div class="card"><div class="k">PC memory</div><div class="v">${(S.sys_ram_used/S.sys_ram_total*100).toFixed(0)}%</div><div class="s">${bytes(S.sys_ram_used)} of ${bytes(S.sys_ram_total)}</div></div>
+   <div class="card"><div class="k">Disk (D:)</div><div class="v">${(S.disk_used/S.disk_total*100).toFixed(0)}%</div><div class="s">${bytes(S.disk_used)} of ${bytes(S.disk_total)}</div></div>`;
+  $("#ov2").innerHTML=`
+   <div class="card"><div class="k">Modpack</div><div class="v">ATM10 ${esc(S.version||"?")}</div><div class="s">${S.mods} mod files</div></div>
+   <div class="card"><div class="k">Uptime</div><div class="v">${S.uptime?dur(S.uptime):"-"}</div></div>
+   <div class="card"><div class="k">Join address</div><div class="v" style="font-size:18px">localhost</div><div class="s">this PC. Friends use your public IP and port 25565</div></div>
+   <div class="card"><div class="k">Whitelist</div><div class="v">${S.whitelist==="true"?"On":"Off"}</div><div class="s">${esc(S.motd)}</div></div>`;
+}
+let miniSeq=0;
+async function pollMini(since){
+  if(page!=="overview")return;
+  try{const r=await api("/api/console?since="+since);const box=$("#mini");
+    if(box){if(since===0)box.innerHTML="";r.lines.slice(-200).forEach(l=>box.appendChild(lineEl(l)));trim(box,200);box.scrollTop=box.scrollHeight;}
+    since=r.next;}catch(e){}
+  timers.push(setTimeout(()=>pollMini(since),1500));
+}
+function lineEl(t){const d=document.createElement("div");d.textContent=t;
+  if(/\/WARN\]/.test(t))d.className="w";else if(/\/ERROR\]|FATAL|Exception/.test(t))d.className="e";else if(t.startsWith("> "))d.className="c";else if(t.startsWith("---")||/Done \(/.test(t))d.className="s";return d;}
+function trim(box,n){while(box.childNodes.length>n)box.removeChild(box.firstChild);}
+
+/* Console */
+R.console=function(){
+  $("#view").innerHTML=`<div class="console" id="con"></div>
+  <div class="row" style="margin-top:12px"><input class="grow" type="text" id="cmd" placeholder="Type a command, for example: list" autocomplete="off"><button class="btn pri" id="send">Send</button></div>
+  <p class="mut" id="conwarn"></p>`;
+  const hist=[];let hi=0;
+  const send=async()=>{const v=$("#cmd").value.trim();if(!v)return;hist.push(v);hi=hist.length;$("#cmd").value="";await act(()=>api("/api/command",{body:{cmd:v}}));};
+  $("#send").onclick=send;
+  $("#cmd").onkeydown=e=>{if(e.key==="Enter")send();else if(e.key==="ArrowUp"&&hi>0){hi--;$("#cmd").value=hist[hi];e.preventDefault();}else if(e.key==="ArrowDown"&&hi<hist.length){hi++;$("#cmd").value=hist[hi]||"";e.preventDefault();}};
+  const loop=async(since)=>{
+    if(page!=="console")return;
+    try{const r=await api("/api/console?since="+since);const box=$("#con");
+      const stick=box.scrollTop+box.clientHeight>=box.scrollHeight-40||since===0;
+      r.lines.forEach(l=>box.appendChild(lineEl(l)));trim(box,3000);if(stick)box.scrollTop=box.scrollHeight;since=r.next;
+      $("#conwarn").textContent=S&&S.state==="external"?"This server was started outside the dashboard. Its console is not available here. Stop it from its own window.":"";
+    }catch(e){}
+    timers.push(setTimeout(()=>loop(since),1000));
+  };loop(0);
+};
+
+/* Players */
+R.players=async function(){
+  $("#view").innerHTML=`<div id="pl">Loading...</div>`;
+  const load=async()=>{
+    const d=await api("/api/players");
+    const nameRow=(placeholder,btn,action)=>`<div class="row"><input class="grow" type="text" data-add="${action}" placeholder="${placeholder}"><button class="btn pri" data-doadd="${action}">${btn}</button></div>`;
+    $("#pl").innerHTML=`
+    ${d.whitelist_on?"":`<div class="banner"><span class="grow">The whitelist is off, so anyone can join. Turn it on under Configuration (white-list).</span></div>`}
+    <h2>Online (${d.online.length})</h2>
+    <div class="tw"><table><tr><th>Name</th><th></th></tr>${d.online.map(n=>`<tr><td>${esc(n)}</td><td style="text-align:right"><button class="btn sm" data-a="kick" data-n="${esc(n)}">Kick</button> <button class="btn sm bad" data-a="ban" data-n="${esc(n)}">Ban</button></td></tr>`).join("")||`<tr><td class="mut" colspan="2">Nobody is online.</td></tr>`}</table></div>
+    <div class="grid2">
+     <div><h2>Whitelist (${d.whitelist.length})</h2>${nameRow("Minecraft name","Add","whitelist_add")}
+      <div class="tw" style="margin-top:10px"><table>${d.whitelist.map(p=>`<tr><td>${esc(p.name)}</td><td style="text-align:right"><button class="btn sm" data-a="whitelist_remove" data-n="${esc(p.name)}">Remove</button></td></tr>`).join("")||`<tr><td class="mut">Empty.</td></tr>`}</table></div></div>
+     <div><h2>Operators (${d.ops.length})</h2>${nameRow("Minecraft name","Make op","op")}
+      <div class="tw" style="margin-top:10px"><table>${d.ops.map(p=>`<tr><td>${esc(p.name)}</td><td class="mut">level ${p.level}</td><td style="text-align:right"><button class="btn sm" data-a="deop" data-n="${esc(p.name)}">Remove</button></td></tr>`).join("")||`<tr><td class="mut">Empty.</td></tr>`}</table></div></div>
+    </div>
+    <h2>Banned (${d.banned.length})</h2>
+    <div class="tw"><table><tr><th>Name</th><th>Reason</th><th></th></tr>${d.banned.map(p=>`<tr><td>${esc(p.name)}</td><td class="mut">${esc(p.reason||"")}</td><td style="text-align:right"><button class="btn sm" data-a="pardon" data-n="${esc(p.name)}">Pardon</button></td></tr>`).join("")||`<tr><td class="mut" colspan="3">Nobody is banned.</td></tr>`}</table></div>
+    <p class="mut">Changes made while the server runs go through server commands. While it is stopped, the dashboard edits the files and looks names up with Mojang.</p>`;
+    $("#pl").onclick=async e=>{
+      const b=e.target.closest("button");if(!b)return;
+      if(b.dataset.doadd){const inp=$(`[data-add="${b.dataset.doadd}"]`);const n=inp.value.trim();if(!n)return;
+        await act(()=>api("/api/players/action",{body:{action:b.dataset.doadd,name:n}}),"Done.");setTimeout(load,800);return;}
+      if(b.dataset.a){await act(()=>api("/api/players/action",{body:{action:b.dataset.a,name:b.dataset.n}}),"Done.");setTimeout(load,800);}
+    };
+  };
+  try{await load();}catch(e){$("#pl").textContent=e.message;}
+  timers.push(setTimeout(function again(){if(page==="players"){load().catch(()=>{});timers.push(setTimeout(again,6000));}},6000));
+};
+
+/* Files */
+R.files=function(){
+  let cur="";
+  const show=async(p)=>{
+    cur=p;let d;try{d=await api("/api/files?path="+encodeURIComponent(p));}catch(e){toast(e.message,true);return;}
+    const parts=d.path?d.path.split("/"):[];
+    const crumbs=[`<a data-p="">server</a>`].concat(parts.map((x,i)=>`<a data-p="${esc(parts.slice(0,i+1).join("/"))}">${esc(x)}</a>`)).join(" / ");
+    $("#view").innerHTML=`<div class="row" style="margin-bottom:12px"><div class="crumb grow">${crumbs}</div>
+      <label class="btn">Upload here<input type="file" id="up" hidden></label></div>
+      <div class="tw"><table><tr><th>Name</th><th>Size</th><th>Modified</th><th></th></tr>
+      ${d.path?`<tr><td><a class="lnk" data-p="${esc(parts.slice(0,-1).join("/"))}">..</a></td><td></td><td></td><td></td></tr>`:""}
+      ${d.items.map(it=>{const full=(d.path?d.path+"/":"")+it.name;return`<tr><td>${it.dir?`<a class="lnk" data-p="${esc(full)}">${esc(it.name)}/</a>`:it.text?`<a class="lnk" data-e="${esc(full)}">${esc(it.name)}</a>`:esc(it.name)}</td><td class="mut">${it.dir?"":bytes(it.size)}</td><td class="mut">${when(it.time)}</td>
+      <td style="text-align:right">${it.dir?"":`<a class="btn sm" href="/api/file/download?path=${encodeURIComponent(full)}&t=${TOKEN}">Download</a> `}<button class="btn sm bad" data-d="${esc(full)}">Delete</button></td></tr>`;}).join("")}</table></div>
+      <p class="mut">Deleted items go to D:\\MinecraftServers\\_trash, not away for good. Edited files are copied to _file_backups first.</p>`;
+    $("#view").onclick=async e=>{
+      const a=e.target.closest("[data-p],[data-e],[data-d]");if(!a)return;
+      if(a.dataset.p!==undefined&&a.tagName!=="BUTTON"){show(a.dataset.p);return;}
+      if(a.dataset.e){try{const f=await api("/api/file?path="+encodeURIComponent(a.dataset.e));
+        modal(`<h3>${esc(a.dataset.e)}</h3><textarea id="ed" rows="22" spellcheck="false">${esc(f.text)}</textarea><div class="acts"><button class="btn" id="ec">Close</button><button class="btn pri" id="es">Save</button></div>`);
+        $("#ec").onclick=closeModal;$("#es").onclick=async()=>{if(await act(()=>api("/api/file",{body:{path:a.dataset.e,text:$("#ed").value}}),"Saved.")){closeModal();}};
+      }catch(err){toast(err.message,true);}return;}
+      if(a.dataset.d){if(await confirmBox("Delete",`Move <b>${esc(a.dataset.d)}</b> to the trash folder?`,[{label:"Cancel",value:false},{label:"Delete",value:true,cls:"bad"}])){
+        if(await act(()=>api("/api/file/delete",{body:{path:a.dataset.d}}),"Moved to trash."))show(cur);}}
+    };
+    $("#up").onchange=async e=>{const f=e.target.files[0];if(!f)return;
+      const buf=await f.arrayBuffer();
+      if(await act(()=>api("/api/file/upload?path="+encodeURIComponent(cur)+"&name="+encodeURIComponent(f.name),{body:buf,raw:true}),"Uploaded."))show(cur);};
+  };
+  show("");
+};
+
+/* Mods */
+R.mods=function(){
+  const tabs=[["installed","Installed"],["find","Find mods"],["rec","Recommended"],["share","Share with friends"]];
+  let tab="installed";
+  const head=()=>`<div class="tabs">${tabs.map(([i,l])=>`<button data-t="${i}" class="${tab===i?"on":""}">${l}</button>`).join("")}</div><div id="mt"></div>`;
+  $("#view").innerHTML=head();
+  $("#view").onclick=e=>{const b=e.target.closest("[data-t]");if(b){tab=b.dataset.t;$("#view").innerHTML=head();draw();}};
+  const hitsTable=(hits,box)=>{
+    box.innerHTML=`<div class="tw"><table><tr><th></th><th>Mod</th><th>Downloads</th><th>Server</th><th>Installed</th><th>About</th></tr>
+    ${hits.map(h=>`<tr class="${h.installed?"inst":""}"><td>${h.installed?"":`<input type="checkbox" data-id="${esc(h.project_id)}">`}</td><td><b>${esc(h.title)}</b></td><td>${(h.downloads||0).toLocaleString()}</td><td>${esc(h.server_side||"")}</td><td>${h.installed?`<span class="badge g">Installed</span>`:""}</td><td>${esc(h.description||"")}</td></tr>`).join("")||`<tr><td colspan="6" class="mut">No results.</td></tr>`}</table></div>`;
+  };
+  const installBar=()=>`<div class="row" style="margin-top:12px"><label class="row"><input type="checkbox" id="toc" checked> Also copy to my own CurseForge ATM10 profile</label><span class="grow"></span><button class="btn pri" id="doinst">Install ticked mods</button></div>`;
+  const doInstall=async()=>{
+    const ids=[...document.querySelectorAll("[data-id]:checked")].map(x=>x.dataset.id);
+    if(!ids.length){toast("Tick at least one mod.",true);return;}
+    const r=await act(()=>api("/api/mods/install",{body:{ids,to_client:$("#toc").checked}}));
+    if(r){await jobModal(r.job,"Installing mods");draw();}
+  };
+  async function draw(){
+    const box=$("#mt");box.innerHTML=`<p class="mut">Loading...</p>`;
+    if(tab==="installed"){
+      try{const d=await api("/api/mods");
+        box.innerHTML=`<div class="row" style="margin-bottom:12px"><input class="grow" type="text" id="flt" placeholder="Filter ${d.mods.length} mods"><span class="mut">${d.extras} added by you</span></div><div class="tw"><table id="mtab"><tr><th>Mod</th><th>Version</th><th>File</th><th></th></tr>
+        ${d.mods.map(m=>`<tr data-s="${esc((m.name+" "+m.file+" "+m.modId).toLowerCase())}"><td><b>${esc(m.name)}</b> ${m.added?`<span class="badge g">added</span>`:""}</td><td class="mut">${esc(m.version)}</td><td class="mut">${esc(m.file)}</td><td style="text-align:right"><button class="btn sm bad" data-rm="${esc(m.file)}">Remove</button></td></tr>`).join("")}</table></div>`;
+        $("#flt").oninput=e=>{const q=e.target.value.toLowerCase();document.querySelectorAll("#mtab tr[data-s]").forEach(r=>r.style.display=r.dataset.s.includes(q)?"":"none");};
+        box.onclick=async e=>{const b=e.target.closest("[data-rm]");if(!b)return;
+          if(await confirmBox("Remove mod",`Move <b>${esc(b.dataset.rm)}</b> out of the server? Removing a pack mod can break the world or other mods.`,[{label:"Cancel",value:false},{label:"Remove",value:true,cls:"bad"}])){
+            if(await act(()=>api("/api/mods/remove",{body:{file:b.dataset.rm}}),"Removed. It is saved in D:\\MinecraftServers\\mods_removed."))draw();}};
+      }catch(e){box.textContent=e.message;}
+    }else if(tab==="find"){
+      let offset=0,total=0,all=[];
+      box.innerHTML=`<div class="row"><input class="grow" type="text" id="q" placeholder="Search mods for NeoForge 1.21.1 that work on a server"><button class="btn pri" id="go">Search</button></div><p class="mut" id="cnt"></p><div id="res"></div><div class="row" id="morebar" style="margin-top:10px"><button class="btn" id="more" hidden>Load 50 more</button></div>${installBar()}`;
+      const search=async(reset)=>{
+        if(reset){offset=0;all=[];}
+        try{const d=await api(`/api/mods/search?q=${encodeURIComponent($("#q").value)}&offset=${offset}`);
+          all=all.concat(d.hits);offset=d.offset;total=d.total;hitsTable(all,$("#res"));
+          $("#cnt").textContent=`Showing ${all.length} of ${total.toLocaleString()} mods`;$("#more").hidden=offset>=total;
+        }catch(e){$("#cnt").textContent=e.message;}
+      };
+      $("#go").onclick=()=>search(true);$("#q").onkeydown=e=>{if(e.key==="Enter")search(true);};
+      $("#more").onclick=()=>{const ticked=[...document.querySelectorAll("[data-id]:checked")].map(x=>x.dataset.id);search(false).then(()=>ticked.forEach(i=>{const c=document.querySelector(`[data-id="${i}"]`);if(c)c.checked=true;}));};
+      $("#doinst").onclick=doInstall;search(true);
+    }else if(tab==="rec"){
+      box.innerHTML=`<p class="mut">Suggested additions that fit a friends server. Greyed rows are already installed.</p><div id="res"></div>${installBar()}`;
+      try{const d=await api("/api/mods/recommended");hitsTable(d.hits,$("#res"));}catch(e){$("#res").textContent=e.message;}
+      $("#doinst").onclick=doInstall;
+    }else{
+      try{const d=await api("/api/mods");const added=d.mods.filter(m=>m.added);
+        box.innerHTML=`<div class="panel"><p>Players need the extra mods you add on top of ATM10. This builds one zip with those mods and an <b>Install.bat</b> that puts them in a friend's ATM10 profile.</p>
+        <div class="row"><button class="btn pri" id="build">Build friends pack</button><a class="btn" id="dl" href="/api/share/download?t=${TOKEN}">Download the zip</a></div>
+        <p class="mut">The zip is saved as D:\\MinecraftServers\\Share\\ATM10_Extra_Mods.zip. Send it on Discord or Google Drive. Friends need the same ATM10 version as the server.</p></div>
+        <h2>Mods in the pack (${added.length})</h2><div class="tw"><table>${added.map(m=>`<tr><td>${esc(m.name)}</td><td class="mut">${esc(m.file)}</td></tr>`).join("")||`<tr><td class="mut">You have not added any mods yet.</td></tr>`}</table></div>`;
+        $("#build").onclick=async()=>{const r=await act(()=>api("/api/share/build",{body:{}}));if(r)await jobModal(r.job,"Building friends pack");};
+      }catch(e){box.textContent=e.message;}
+    }
+  }
+  draw();
+};
+
+/* Backups */
+R.backups=async function(){
+  const load=async()=>{
+    const d=await api("/api/backups");
+    $("#view").innerHTML=`<div class="row" style="margin-bottom:12px"><button class="btn pri" id="mk">Create backup</button><span class="mut">Works while the server runs. It pauses saving for a moment, then zips the world.</span></div>
+    <div class="tw"><table><tr><th>Name</th><th>Size</th><th>Created</th><th></th></tr>
+    ${d.items.map(b=>`<tr><td>${esc(b.name)} ${b.dir?`<span class="badge">folder</span>`:""}</td><td class="mut">${b.size==null?"-":bytes(b.size)}</td><td class="mut">${when(b.time)}</td>
+    <td style="text-align:right">${b.name.endsWith(".zip")&&!b.dir?`<a class="btn sm" href="/api/backups/download?name=${encodeURIComponent(b.name)}&t=${TOKEN}">Download</a> `:""}${b.name.endsWith(".zip")||b.name.startsWith("world")||b.name.startsWith("update")?`<button class="btn sm" data-r="${esc(b.name)}">Restore</button> `:""}<button class="btn sm bad" data-x="${esc(b.name)}">Delete</button></td></tr>`).join("")||`<tr><td class="mut" colspan="4">No backups yet.</td></tr>`}</table></div>`;
+    $("#mk").onclick=async()=>{const r=await act(()=>api("/api/backups/create",{body:{}}));if(r){await jobModal(r.job,"Backing up the world");load();}};
+    $("#view").onclick=async e=>{const b=e.target.closest("[data-r],[data-x]");if(!b)return;
+      if(b.dataset.r){if(await confirmBox("Restore backup",`Replace the current world with <b>${esc(b.dataset.r)}</b>? The server must be stopped. The current world is kept in a _before_restore folder.`,[{label:"Cancel",value:false},{label:"Restore",value:true,cls:"bad"}])){
+        const r=await act(()=>api("/api/backups/restore",{body:{name:b.dataset.r}}));if(r){await jobModal(r.job,"Restoring");load();}}}
+      else if(await confirmBox("Delete backup",`Move <b>${esc(b.dataset.x)}</b> to the trash folder?`,[{label:"Cancel",value:false},{label:"Delete",value:true,cls:"bad"}])){
+        if(await act(()=>api("/api/backups/delete",{body:{name:b.dataset.x}}),"Moved to trash."))load();}};
+  };
+  try{await load();}catch(e){$("#view").textContent=e.message;}
+};
+
+/* Schedules */
+R.schedules=async function(){
+  let d;try{d=await api("/api/schedules");}catch(e){$("#view").textContent=e.message;return;}
+  let items=d.items;
+  const draw=()=>{
+    $("#view").innerHTML=`<p class="mut">The dashboard must be running for schedules to fire. Restart gives players a 30 second warning.</p>
+    <div class="tw"><table><tr><th>On</th><th>Name</th><th>Task</th><th>When</th><th>Text</th><th>Last run</th><th></th></tr>
+    ${items.map((it,i)=>`<tr><td><label class="sw"><input type="checkbox" data-f="enabled" data-i="${i}" ${it.enabled?"checked":""}><span></span></label></td>
+     <td><input type="text" data-f="name" data-i="${i}" value="${esc(it.name)}"></td>
+     <td><select data-f="type" data-i="${i}">${["backup","restart","announce","command"].map(t=>`<option ${it.type===t?"selected":""}>${t}</option>`).join("")}</select></td>
+     <td><div class="row"><select data-f="mode" data-i="${i}"><option value="daily" ${it.mode==="daily"?"selected":""}>daily at</option><option value="interval" ${it.mode==="interval"?"selected":""}>every</option></select>
+      ${it.mode==="daily"?`<input type="time" data-f="time" data-i="${i}" value="${esc(it.time)}">`:`<input type="number" min="1" style="width:80px" data-f="minutes" data-i="${i}" value="${it.minutes||60}"> min`}</div></td>
+     <td><input type="text" data-f="text" data-i="${i}" value="${esc(it.text)}" placeholder="${it.type==="announce"?"message":it.type==="command"?"command":""}" ${it.type==="announce"||it.type==="command"?"":"disabled"}></td>
+     <td class="mut">${it.last?esc(it.last.slice(0,16)):"never"}</td>
+     <td style="text-align:right">${it.id?`<button class="btn sm" data-run="${esc(it.id)}">Run now</button> `:""}<button class="btn sm bad" data-rm="${i}">Remove</button></td></tr>`).join("")||`<tr><td class="mut" colspan="7">No schedules yet.</td></tr>`}</table></div>
+    <div class="row" style="margin-top:14px"><button class="btn" id="add">Add schedule</button><span class="grow"></span>
+     <label class="row">Keep the last <input type="number" id="keep" min="1" style="width:80px" value="${d.keep}"> automatic backups</label><button class="btn pri" id="save">Save</button></div>`;
+    $("#view").onchange=e=>{const f=e.target.dataset.f;if(!f)return;const it=items[+e.target.dataset.i];
+      it[f]=e.target.type==="checkbox"?e.target.checked:e.target.type==="number"?+e.target.value:e.target.value;if(f==="mode"||f==="type")draw();};
+    $("#view").oninput=e=>{const f=e.target.dataset.f;if(f==="name"||f==="text")items[+e.target.dataset.i][f]=e.target.value;};
+    $("#view").onclick=async e=>{
+      const r=e.target.closest("[data-run]");
+      if(r){if(await act(()=>api("/api/schedules/run",{body:{id:r.dataset.run}}),"Started. Check the Backups page or the Console."))return;return;}
+      const b=e.target.closest("[data-rm]");if(b){items.splice(+b.dataset.rm,1);draw();}};
+    $("#add").onclick=()=>{items.push({id:"",name:"New schedule",enabled:false,type:"backup",mode:"daily",time:"04:00",minutes:60,text:"",last:""});draw();};
+    $("#save").onclick=()=>act(()=>api("/api/schedules",{body:{items,keep:+$("#keep").value||10}}),"Saved.");
+  };draw();
+};
+
+/* Updates */
+R.updates=async function(){
+  const load=async()=>{
+    const s=await api("/api/update/status");
+    $("#view").innerHTML=`<div class="cards"><div class="card"><div class="k">Installed modpack</div><div class="v">ATM10 ${esc(s.version||"?")}</div></div>
+     <div class="card"><div class="k">CurseForge key</div><div class="v" style="font-size:18px">${s.has_key?"Saved":"Not set"}</div></div></div>
+    <h2>Check for an update</h2><div class="panel"><div class="row"><button class="btn pri" id="chk">Check now</button><span class="mut" id="chkres"></span></div>
+    <p class="mut">The dashboard also checks every time you press Start, and asks before it changes anything.</p></div>
+    <h2>CurseForge API key</h2><div class="panel"><p>The update check needs a free key.</p>
+     <ol><li>CurseForge only gives this key to approved third-party apps. A key copied from console.curseforge.com is refused (403) until you are approved.</li><li>Open the support article "About the CurseForge API and How to Apply for a Key" on support.curseforge.com and fill in its application form.</li><li>Wait for the approval email, then paste the approved key below and save.</li></ol>
+     <div class="row"><input class="grow" type="password" id="key" placeholder="Paste the key" autocomplete="off"><button class="btn pri" id="sk">Save key</button></div>
+     <p class="mut">It is stored only on this PC, in D:\\MinecraftServers\\curseforge_key.txt.</p></div>
+    <h2>Update from a zip you downloaded</h2><div class="panel"><p>Use this when you downloaded a server pack yourself.</p>
+     <div class="row"><input class="grow" type="text" id="zp" placeholder="C:\\Users\\you\\Downloads\\Server-Files-8.5.zip"><button class="btn" id="uz">Update from zip</button></div></div>`;
+    $("#chk").onclick=async()=>{$("#chkres").textContent="Checking...";try{const c=await api("/api/update/check");
+      if(!c.ok){$("#chkres").textContent="Add your CurseForge key first.";return;}
+      if(!c.newer){$("#chkres").textContent=`Up to date (${c.current}).`;return;}
+      $("#chkres").innerHTML=c.serverPack?`ATM10 ${esc(c.latest)} is available. <button class="btn sm pri" id="ap">Update now</button>`:`ATM10 ${esc(c.latest)} is out, but its server pack is not uploaded yet.`;
+      const ap=$("#ap");if(ap)ap.onclick=async()=>{if(S.state!=="stopped"){toast("Stop the server first.",true);return;}const r=await act(()=>api("/api/update/apply",{body:{}}));if(r){await jobModal(r.job,"Updating ATM10");load();}};
+    }catch(e){$("#chkres").textContent=e.message;}};
+    $("#sk").onclick=async()=>{const k=$("#key").value.trim();if(await act(()=>api("/api/cfkey",{body:{key:k}}),"Key saved."))load();};
+    $("#uz").onclick=async()=>{const p=$("#zp").value.trim().replace(/^"|"$/g,"");if(!p){toast("Paste the zip path first.",true);return;}
+      if(S.state!=="stopped"){toast("Stop the server first.",true);return;}
+      if(await confirmBox("Update from zip",`Update the server from <b>${esc(p)}</b>? Your world, whitelist, ops and settings are kept, and the old mods and world are backed up first.`,[{label:"Cancel",value:false},{label:"Update",value:true,cls:"pri"}])){
+        const r=await act(()=>api("/api/update/zip",{body:{path:p}}));if(r){await jobModal(r.job,"Updating from zip");load();}}};
+  };
+  try{await load();}catch(e){$("#view").textContent=e.message;}
+};
+
+/* Configuration */
+R.config=async function(){
+  let d;try{d=await api("/api/config");}catch(e){$("#view").textContent=e.message;return;}
+  $("#view").innerHTML=`${d.running?`<div class="banner"><span class="grow">The server is running. Changes are saved now and take effect after a restart.</span></div>`:""}
+   <div class="row" style="margin-bottom:12px"><span class="grow mut">server.properties and memory</span><button class="btn pri" id="save">Save changes</button></div>
+   <div class="cfg"><div class="item"><label>Server memory (Xmx and Xms)</label><input type="text" id="xmx" value="${esc(d.xmx)}"><div class="info">For example 12G. ATM10 needs at least 8G. Leave room for Windows.</div></div>
+   ${d.props.map(p=>`<div class="item"><div class="row"><label class="grow" for="p_${esc(p.key)}">${esc(p.key)}</label>${p.type==="bool"?`<label class="sw"><input type="checkbox" id="p_${esc(p.key)}" data-k="${esc(p.key)}" data-t="bool" ${p.value==="true"?"checked":""}><span></span></label>`:""}</div>
+    ${p.type==="bool"?"":`<input type="${p.key==="rcon.password"?"password":"text"}" id="p_${esc(p.key)}" data-k="${esc(p.key)}" data-t="${p.type}" value="${esc(p.value)}">`}
+    ${p.info?`<div class="info">${esc(p.info)}</div>`:""}</div>`).join("")}</div>`;
+  $("#save").onclick=async()=>{
+    const props={};document.querySelectorAll("[data-k]").forEach(i=>props[i.dataset.k]=i.dataset.t==="bool"?String(i.checked):i.value);
+    await act(()=>api("/api/config",{body:{props,xmx:$("#xmx").value.trim()}}),"Saved.");
+  };
+};
+
+/* boot */
+window.addEventListener("keydown",e=>{if(e.key==="Escape"&&$("#modal").classList.contains("show")&&!$("#jc"))closeModal();});
+poll();
+const first=(location.hash||"").slice(1);
+go(PAGES.some(p=>p[0]===first)?first:"overview");
+</script>
+</body>
+</html>
